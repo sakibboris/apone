@@ -34,23 +34,25 @@
                                             <a class="btn btn-sm btn-primary"
                                                 href="{{ route('blogs.edit', $item->id) }}">EDIT</a>
                                             <a class="btn btn-sm btn-warning" href="{{ route('blogs.trash', $item->id) }}"
-                                                onclick="event.preventDefault(); document.getElementById('trash-form').submit();">
+                                                onclick="event.preventDefault(); document.getElementById('trash-form-{{ $item->id }}').submit();">
                                                 TRASH
                                             </a>
 
-                                            <form id="trash-form" action="{{ route('blogs.trash', $item->id) }}"
-                                                method="POST" class="d-none">
+                                            <form id="trash-form-{{ $item->id }}"
+                                                action="{{ route('blogs.trash', $item->id) }}" method="POST"
+                                                class="d-none">
                                                 @csrf
                                                 @method('DELETE')
                                             </form>
                                             <a class="btn btn-sm btn-danger btndelete"
-                                                href="{{ route('blogs.delete', $item->id) }}"
-                                                onclick="event.preventDefault(); showDeleteConfirmation();">
+                                                href="{{ route('blogs.trash', $item->id) }}"
+                                                onclick="event.preventDefault(); showDeleteConfirmation('{{ $item->id }}')">
                                                 DELETE
                                             </a>
 
-                                            <form id="delete-form" action="{{ route('blogs.delete', $item->id) }}"
-                                                method="POST" class="d-none">
+                                            <form id="delete-form-{{ $item->id }}"
+                                                action="{{ route('blogs.delete', $item->id) }}" method="POST"
+                                                class="d-none">
                                                 @csrf
                                                 @method('DELETE')
                                             </form>
@@ -69,12 +71,8 @@
         $(document).ready(function() {
             $('#data-table').DataTable();
         });
-        $(document).on('click', '.btndelete', function(event) {
-            event.preventDefault();
-            showDeleteConfirmation();
-        });
 
-        function showDeleteConfirmation() {
+        function showDeleteConfirmation(itemId) {
             Swal.fire({
                 title: 'Are you sure?',
                 text: "You won't be able to revert this!",
@@ -85,14 +83,12 @@
                 confirmButtonText: 'Yes, delete it!'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    document.querySelector('.btn').disabled = true;
                     Swal.fire(
                         'Deleted!',
                         'Your file has been deleted.',
                         'success'
                     ).then(() => {
-                        document.querySelector('.btn').disabled = false;
-                        document.getElementById('delete-form').submit();
+                        document.getElementById('delete-form-' + itemId).submit();
                     });
                 }
             });

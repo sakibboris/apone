@@ -37,7 +37,10 @@
     @elseif (Session::has('success'))
         <div id="error-box" style="position: fixed; top: 100px; right: 25px; z-index:1000; width: 20%;">
             <div class="alert alert-success" role="alert" style=" margin: 0 auto;">
-                {{ session('success') }}
+                @if (session('recoveredItems'))
+                <h5>{{ session('recoveredItems')->title }}</h5>
+                @endif
+                <h5>{{ session('success') }}</h5>
             </div>
         </div>
     @endif

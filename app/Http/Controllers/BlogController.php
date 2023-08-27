@@ -2,31 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Blog;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Constants\CommonConstants;
+use App\Repositories\BlogRepositoryInterface;
 
 class BlogController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
-    public function __construct()
+    protected $blogRepository;
+    protected $commonConstants;
+    public function __construct(BlogRepositoryInterface $blogRepository, CommonConstants $commonConstants)
     {
         $this->middleware('auth');
+        $this->blogRepository = $blogRepository;
+        $this->commonConstants = $commonConstants;
     }
-
     public function index()
     {
-        $data = Blog::all();
+        $data = $this->blogRepository->index();
         return view('admin.blogs.index', compact('data'));
     }
+
     public function trashedIndex()
     {
-        $data = Blog::onlyTrashed()->get();
+        $data = $this->blogRepository->index($this->commonConstants->TRASHED);
         return view('admin.blogs.trashIndex', compact('data'));
     }
 
@@ -38,62 +36,50 @@ class BlogController extends Controller
 
     public function store(Request $request)
     {
-        $user = Auth::user()->id;
-        $slug = Str::slug($request->title);
-        $request->validate([
+        $validators = [
             'title' => 'required|string',
-        ]);
-
-        $blog = new Blog();
-        $blog->posted_by = $user;
-        $blog->slug = $slug;
-        $blog->title = $request->title;
-        $blog->save();
+        ];
+        $this->blogRepository->createOrUpdate($request, $validators);
 
         return redirect(route('blogs.index'))->with('success', 'Stored Successfully');
     }
 
     public function edit($id)
     {
-        $blog = Blog::findOrFail($id);
+        $blog = $this->blogRepository->show($id);
         return view('admin.blogs.edit', compact('blog'));
     }
 
     public function update(Request $request, $id)
     {
-        $user = Auth::user()->id;
-        $slug = Str::slug($request->title);
-        $request->validate([
+        $validators = [
             'title' => 'required|string',
-        ]);
-
-        $blog = Blog::findOrFail($id);
-        $blog->posted_by = $user;
-        $blog->slug = $slug;
-        $blog->title = $request->title;
-        $blog->save();
+        ];
+        $data['id'] = $id;
+        $this->blogRepository->createOrUpdate($request, $validators);
 
         return redirect(route('blogs.index'))->with('success', 'Updated Successfully');
     }
 
     public function recover($id)
     {
-        $blog = Blog::onlyTrashed()->findOrFail($id);
-        $blog->restore();
-        return back()->with('success', 'Recovered Successfully');
+        $blog = $this->blogRepository->restoreOrDelete($id, $this->commonConstants->RESTORE);
+        return back()->with([
+            'success' => 'Recovered Successfully',
+            'recoveredItems' => $blog
+        ]);
     }
 
     public function trash($id)
     {
-        $blog = Blog::findOrFail($id);
+        $blog = $this->blogRepository->show($id);
         $blog->delete();
         return back()->withErrors('Trashed Successfully');
     }
 
-    public function delete($id)
+    public function delete(Request $request, $id)
     {
-        $blog = Blog::withTrashed()->findOrFail($id);
-        $blog->forceDelete();
+        $this->blogRepository->restoreOrDelete($id);
         return back()->withErrors('Deleted Successfully');
     }
 }
